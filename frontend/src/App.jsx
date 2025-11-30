@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Map from './components/Map';
+import CompareMap from './components/CompareMap';
 import TemporalSlider from './components/TemporalSlider';
 import MetricsDashboard from './components/MetricsDashboard';
 import ChangeSummary from './components/ChangeSummary';
+import CompareControls from './components/CompareControls';
+import ImageOverlay from './components/ImageOverlay';
 import { getDataForYear, getSummaryForYear, metricsData } from './data/mockData';
 import './styles/App.css';
 
@@ -11,6 +14,18 @@ function App() {
   const [geoData, setGeoData] = useState(() => getDataForYear(2024));
   const [summary, setSummary] = useState(() => getSummaryForYear(2024));
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Compare mode state
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [compareLeftYear, setCompareLeftYear] = useState(2014);
+  const [compareRightYear, setCompareRightYear] = useState(2024);
+  const [isImageOverlayOpen, setIsImageOverlayOpen] = useState(false);
+  const [imageBeforeYear, setImageBeforeYear] = useState(2014);
+  const [imageAfterYear, setImageAfterYear] = useState(2024);
+
+  // Memoized data for compare mode
+  const leftData = useMemo(() => getDataForYear(compareLeftYear), [compareLeftYear]);
+  const rightData = useMemo(() => getDataForYear(compareRightYear), [compareRightYear]);
 
   const handleYearChange = useCallback((year) => {
     setSelectedYear(year);
@@ -22,13 +37,37 @@ function App() {
     setIsPlaying(prev => !prev);
   }, []);
 
+  const handleToggleCompare = useCallback(() => {
+    setIsCompareMode(prev => !prev);
+    setIsPlaying(false); // Stop auto-play when entering compare mode
+  }, []);
+
+  const handleImageYearChange = useCallback((type, year) => {
+    if (type === 'before') {
+      setImageBeforeYear(year);
+    } else {
+      setImageAfterYear(year);
+    }
+  }, []);
+
   return (
     <div className="app-container">
       <div className="map-section">
-        <Map geoData={geoData} selectedYear={selectedYear} />
-        <div className="map-overlay">
-          <div className="year-badge">{selectedYear}</div>
-        </div>
+        {isCompareMode ? (
+          <CompareMap 
+            leftYear={compareLeftYear}
+            rightYear={compareRightYear}
+            leftData={leftData}
+            rightData={rightData}
+          />
+        ) : (
+          <>
+            <Map geoData={geoData} selectedYear={selectedYear} />
+            <div className="map-overlay">
+              <div className="year-badge">{selectedYear}</div>
+            </div>
+          </>
+        )}
       </div>
       
       <aside className="sidebar">
@@ -37,21 +76,43 @@ function App() {
           <p className="app-subtitle">Temporal Analysis 2014–2024</p>
         </header>
 
-        <section className="slider-section">
-          <TemporalSlider
-            selectedYear={selectedYear}
-            onYearChange={handleYearChange}
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
+        {/* Compare Controls - New Section */}
+        <section className="compare-section">
+          <CompareControls
+            isCompareMode={isCompareMode}
+            onToggleCompare={handleToggleCompare}
+            leftYear={compareLeftYear}
+            rightYear={compareRightYear}
+            onLeftYearChange={setCompareLeftYear}
+            onRightYearChange={setCompareRightYear}
+            onOpenImageOverlay={() => setIsImageOverlayOpen(true)}
           />
         </section>
 
+        {/* Regular timeline controls - hidden in compare mode */}
+        {!isCompareMode && (
+          <section className="slider-section">
+            <TemporalSlider
+              selectedYear={selectedYear}
+              onYearChange={handleYearChange}
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
+            />
+          </section>
+        )}
+
         <section className="summary-section">
-          <ChangeSummary summary={summary} year={selectedYear} />
+          <ChangeSummary 
+            summary={isCompareMode ? getSummaryForYear(compareRightYear) : summary} 
+            year={isCompareMode ? compareRightYear : selectedYear} 
+          />
         </section>
 
         <section className="metrics-section">
-          <MetricsDashboard data={metricsData} selectedYear={selectedYear} />
+          <MetricsDashboard 
+            data={metricsData} 
+            selectedYear={isCompareMode ? compareRightYear : selectedYear} 
+          />
         </section>
 
         <footer className="sidebar-footer">
@@ -74,9 +135,17 @@ function App() {
           </div>
         </footer>
       </aside>
+
+      {/* Image Comparison Overlay */}
+      <ImageOverlay
+        isOpen={isImageOverlayOpen}
+        onClose={() => setIsImageOverlayOpen(false)}
+        beforeYear={imageBeforeYear}
+        afterYear={imageAfterYear}
+        onYearChange={handleImageYearChange}
+      />
     </div>
   );
 }
 
 export default App;
-

@@ -143,11 +143,20 @@ body {
 }
 
 /* Sections */
+.compare-section,
 .slider-section,
 .summary-section,
 .metrics-section {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
+}
+
+.compare-section {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    transparent 50%
+  );
 }
 
 /* Sidebar Footer / Legend */

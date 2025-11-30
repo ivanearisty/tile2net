@@ -1,0 +1,160 @@
+/* Compare Map Styles */
+
+.compare-map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: ew-resize;
+}
+
+.compare-map-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.compare-map-wrapper.left {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.compare-map-wrapper.right {
+  z-index: 1;
+}
+
+.compare-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Year labels */
+.year-label {
+  position: absolute;
+  top: 20px;
+  padding: 8px 16px;
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.year-label.left {
+  left: 20px;
+  border-left: 3px solid var(--accent-amber);
+}
+
+.year-label.right {
+  right: 20px;
+  border-left: 3px solid var(--accent-blue);
+}
+
+/* Slider */
+.compare-slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 10;
+  cursor: ew-resize;
+  transform: translateX(-50%);
+}
+
+.compare-slider .slider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    var(--accent-amber) 0%,
+    var(--accent-blue) 100%
+  );
+  transform: translateX(-50%);
+  box-shadow: 
+    0 0 10px rgba(245, 158, 11, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.compare-slider .slider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
+}
+
+.compare-slider .slider-handle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.compare-slider:hover .slider-handle,
+.compare-slider.dragging .slider-handle {
+  transform: translate(-50%, -50%) scale(1.1);
+  border-color: var(--accent-amber);
+  box-shadow: 
+    0 6px 24px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(245, 158, 11, 0.4);
+}
+
+.compare-slider.dragging {
+  cursor: grabbing;
+}
+
+/* Instructions */
+.compare-instructions {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  animation: fadeInUp 0.5s ease forwards;
+  animation-delay: 1s;
+  opacity: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Mapbox control overrides for compare mode */
+.compare-map-wrapper.right .mapboxgl-ctrl-top-right {
+  right: 10px;
+}
+
