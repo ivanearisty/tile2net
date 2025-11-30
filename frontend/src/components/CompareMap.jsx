@@ -5,26 +5,37 @@ import '../styles/CompareMap.css';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
-const CompareMap = ({ leftYear, rightYear, leftData, rightData }) => {
+const CompareMap = ({ 
+  leftYear, 
+  rightYear, 
+  leftData, 
+  rightData,
+  center = [-73.9695, 40.6744],
+  zoom = 17
+}) => {
   const containerRef = useRef(null);
   const leftMapContainer = useRef(null);
   const rightMapContainer = useRef(null);
   const leftMap = useRef(null);
   const rightMap = useRef(null);
-  const isSyncing = useRef(false); // Flag to prevent infinite sync loop
+  const isSyncing = useRef(false);
+  
+  // Store initial values in refs
+  const initialCenter = useRef(center);
+  const initialZoom = useRef(zoom);
   
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [mapsLoaded, setMapsLoaded] = useState({ left: false, right: false });
 
-  // Initialize maps
+  // Initialize maps only once
   useEffect(() => {
     if (leftMap.current || rightMap.current) return;
 
     const mapConfig = {
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center: [-73.9442, 40.6782],
-      zoom: 13,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: initialCenter.current,
+      zoom: initialZoom.current,
       pitch: 0,
       bearing: 0,
     };
@@ -106,10 +117,20 @@ const CompareMap = ({ leftYear, rightYear, leftData, rightData }) => {
         rightMap.current = null;
       }
     };
-  }, []);
+  }, []); // Empty dependency array - only initialize once
 
   const addInfrastructureLayers = (map, side) => {
     const sourceId = `infrastructure-${side}`;
+
+    // Zoom-based line width
+    const lineWidthUnchanged = [
+      'interpolate', ['linear'], ['zoom'],
+      10, 0.5, 14, 1.5, 17, 3, 20, 5
+    ];
+    const lineWidthHighlight = [
+      'interpolate', ['linear'], ['zoom'],
+      10, 0.75, 14, 2, 17, 4, 20, 6
+    ];
 
     map.addLayer({
       id: `infrastructure-unchanged-${side}`,
@@ -117,9 +138,9 @@ const CompareMap = ({ leftYear, rightYear, leftData, rightData }) => {
       source: sourceId,
       filter: ['==', ['get', 'status'], 'unchanged'],
       paint: {
-        'line-color': '#6b7280',
-        'line-width': 3,
-        'line-opacity': 0.8
+        'line-color': '#ffffff',
+        'line-width': lineWidthUnchanged,
+        'line-opacity': 0.85
       }
     });
 
@@ -129,9 +150,9 @@ const CompareMap = ({ leftYear, rightYear, leftData, rightData }) => {
       source: sourceId,
       filter: ['==', ['get', 'status'], 'added'],
       paint: {
-        'line-color': '#10b981',
-        'line-width': 4,
-        'line-opacity': 0.9
+        'line-color': '#22c55e',
+        'line-width': lineWidthHighlight,
+        'line-opacity': 0.95
       }
     });
 
@@ -142,8 +163,8 @@ const CompareMap = ({ leftYear, rightYear, leftData, rightData }) => {
       filter: ['==', ['get', 'status'], 'removed'],
       paint: {
         'line-color': '#ef4444',
-        'line-width': 4,
-        'line-opacity': 0.9
+        'line-width': lineWidthHighlight,
+        'line-opacity': 0.95
       }
     });
   };

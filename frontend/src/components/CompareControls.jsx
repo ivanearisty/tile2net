@@ -8,10 +8,9 @@ const CompareControls = ({
   rightYear,
   onLeftYearChange,
   onRightYearChange,
-  onOpenImageOverlay
+  onOpenImageOverlay,
+  availableYears = [2014, 2016, 2018]
 }) => {
-  const years = Array.from({ length: 11 }, (_, i) => 2014 + i);
-
   return (
     <div className="compare-controls">
       <div className="compare-header">
@@ -38,7 +37,7 @@ const CompareControls = ({
                 value={leftYear} 
                 onChange={(e) => onLeftYearChange(parseInt(e.target.value))}
               >
-                {years.map(year => (
+                {availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
@@ -59,7 +58,7 @@ const CompareControls = ({
                 value={rightYear} 
                 onChange={(e) => onRightYearChange(parseInt(e.target.value))}
               >
-                {years.map(year => (
+                {availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
@@ -94,4 +93,3 @@ const CompareControls = ({
 };
 
 export default CompareControls;
-

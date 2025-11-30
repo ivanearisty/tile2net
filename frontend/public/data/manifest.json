@@ -1,0 +1,36 @@
+{
+  "name": "Grand Plaza Brooklyn",
+  "years": [
+    2014,
+    2016,
+    2018
+  ],
+  "location": {
+    "name": "Grand Plaza, Brooklyn",
+    "center": [
+      -73.9695,
+      40.6744
+    ],
+    "zoom": 17,
+    "bbox": [
+      40.6733,
+      40.6754,
+      -73.9709,
+      -73.9682
+    ]
+  },
+  "files": {
+    "2014": {
+      "network": "network_2014.geojson",
+      "polygons": "polygons_2014.geojson"
+    },
+    "2016": {
+      "network": "network_2016.geojson",
+      "polygons": "polygons_2016.geojson"
+    },
+    "2018": {
+      "network": "network_2018.geojson",
+      "polygons": "polygons_2018.geojson"
+    }
+  }
+}
