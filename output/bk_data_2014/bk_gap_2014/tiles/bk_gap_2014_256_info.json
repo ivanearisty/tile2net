@@ -1,0 +1,42 @@
+{
+    "name": "bk_gap_2014",
+    "bbox": [
+        40.6733475351,
+        40.6754306136,
+        -73.9709472656,
+        -73.9682006836
+    ],
+    "location": [
+        40.6748463,
+        -73.9709239,
+        40.6749463,
+        -73.9708239
+    ],
+    "size": 1024,
+    "zoom": 19,
+    "crs": 4326,
+    "tile_step": 4,
+    "project": {
+        "config": "/usr/local/lib/python3.10/site-packages/tile2net/tileseg/config.py",
+        "assets": {
+            "weights": {
+                "satellite_2021": "/usr/local/lib/python3.10/site-packages/tile2net/raster/resources/assets/weights/satellite_2021.pth",
+                "hrnetv2_w48_imagenet_pretrained": "/usr/local/lib/python3.10/site-packages/tile2net/raster/resources/assets/weights/hrnetv2_w48_imagenet_pretrained.pth"
+            }
+        },
+        "segmentation": "/data/outputs/bk_gap_2014/segmentation/bk_gap_2014/256_19_4",
+        "tiles": {
+            "info": "/data/outputs/bk_gap_2014/tiles/bk_gap_2014_256_info.json",
+            "static": "/data/outputs/bk_gap_2014/tiles/static/nyc_2014/256_19",
+            "stitched": "/data/outputs/bk_gap_2014/tiles/stitched/256_19_4"
+        },
+        "polygons": "/data/outputs/bk_gap_2014/polygons",
+        "network": "/data/outputs/bk_gap_2014/network",
+        "name": "bk_gap_2014"
+    },
+    "debug": false,
+    "output_dir": "/data/outputs",
+    "source": "nyc_2014",
+    "year": 2014,
+    "server": "https://maps.nyc.gov/xyz/1.0.0/photo/2014"
+}

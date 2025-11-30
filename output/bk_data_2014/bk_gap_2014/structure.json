@@ -1,0 +1,18 @@
+{
+    "config": "/usr/local/lib/python3.10/site-packages/tile2net/tileseg/config.py",
+    "assets": {
+        "weights": {
+            "satellite_2021": "/usr/local/lib/python3.10/site-packages/tile2net/raster/resources/assets/weights/satellite_2021.pth",
+            "hrnetv2_w48_imagenet_pretrained": "/usr/local/lib/python3.10/site-packages/tile2net/raster/resources/assets/weights/hrnetv2_w48_imagenet_pretrained.pth"
+        }
+    },
+    "segmentation": "/data/outputs/bk_gap_2014/segmentation/bk_gap_2014/256_19_4",
+    "tiles": {
+        "info": "/data/outputs/bk_gap_2014/tiles/bk_gap_2014_256_info.json",
+        "static": "/data/outputs/bk_gap_2014/tiles/static/nyc_2014/256_19",
+        "stitched": "/data/outputs/bk_gap_2014/tiles/stitched/256_19_4"
+    },
+    "polygons": "/data/outputs/bk_gap_2014/polygons",
+    "network": "/data/outputs/bk_gap_2014/network",
+    "name": "bk_gap_2014"
+}
