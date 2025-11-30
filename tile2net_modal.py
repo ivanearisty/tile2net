@@ -9,8 +9,8 @@ image = (
         "libgdal-dev",
         "gdal-bin",
         "libspatialindex-dev",
-        "libgl1",       # <--- ADDED: Fixes libGL.so.1 error
-        "libglib2.0-0"  # <--- ADDED: Required for OpenCV
+        "libgl1",  
+        "libglib2.0-0"
     )
     .pip_install(
         "numpy<2.0",
