@@ -1,0 +1,156 @@
+/* Map Component Styles */
+
+.map-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.mapbox-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mapbox Controls Customization */
+.mapboxgl-ctrl-group {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden;
+}
+
+.mapboxgl-ctrl-group button {
+  background: transparent !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid var(--border-color) !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background: var(--bg-tertiary) !important;
+}
+
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(1) brightness(0.8);
+}
+
+.mapboxgl-ctrl-scale {
+  background: rgba(17, 24, 39, 0.9) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  color: var(--text-secondary) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+}
+
+/* Custom Popup Styles */
+.mapboxgl-popup {
+  z-index: 100;
+}
+
+.mapboxgl-popup-content {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  padding: 0 !important;
+  box-shadow: var(--shadow-lg), var(--shadow-glow) !important;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.mapboxgl-popup-close-button {
+  color: var(--text-muted) !important;
+  font-size: 18px !important;
+  padding: 8px 12px !important;
+  right: 0 !important;
+  top: 0 !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: var(--bg-secondary) !important;
+}
+
+.infrastructure-popup .popup-content {
+  font-family: 'Outfit', sans-serif;
+}
+
+.infrastructure-popup .popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.infrastructure-popup .popup-type {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.infrastructure-popup .popup-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.infrastructure-popup .popup-status.added {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-green);
+}
+
+.infrastructure-popup .popup-status.removed {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+.infrastructure-popup .popup-status.unchanged {
+  background: rgba(107, 114, 128, 0.2);
+  color: var(--accent-gray);
+}
+
+.infrastructure-popup .popup-details {
+  padding: 12px 16px;
+}
+
+.infrastructure-popup .popup-details p {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.infrastructure-popup .popup-details p:last-child {
+  margin-bottom: 0;
+}
+
+.infrastructure-popup .popup-details strong {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Attribution styling */
+.mapboxgl-ctrl-attrib {
+  background: rgba(17, 24, 39, 0.8) !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.mapboxgl-ctrl-attrib a {
+  color: var(--text-muted) !important;
+}
+
