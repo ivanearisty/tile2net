@@ -198,60 +198,68 @@ def stitch_tiles(tiles_dir, output_path, tile_bounds):
 
 def main():
     # Configuration
-    year = 2016  # Year to download
+    years = [1924, 1951, 1996, 2001, 2004, 2006, 2008, 2010, 2012, 2014, 2018]
     zoom = 19    # Zoom level (19 = high detail, matching tile2net)
     
-    # Bounding box for North/Central Brooklyn (same as tile2net_batch_gisnys.py)
+    # Bounding box for North/Central Brooklyn
     # Format: [north_lat, west_lon, south_lat, east_lon]
-    # Original from tile2net: location = [40.7000, -74.0000, 40.6500, -73.9300]
-    # That's [north, west, south, east] but let's use a smaller test area first
+    bbox = [40.7000, -74.0000, 40.6500, -73.9300]
     
-    # Small test area (approximately 10x10 tiles at zoom 19)
-    # This is roughly a few city blocks
-    test_bbox = [40.6750, -73.9700, 40.6700, -73.9600]
-    
-    # Full area from tile2net (will be many tiles!)
-    full_bbox = [40.7000, -74.0000, 40.6500, -73.9300]
-    
-    # Use test area for initial testing
-    bbox = test_bbox
+    # Output directories - relative to project root
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    output_dir = project_root / "output" / "nyc_tiles"
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     print("=" * 60)
-    print(f"NYC Tile Downloader - Testing maps.nyc.gov service")
+    print("NYC Tile Downloader - maps.nyc.gov Historical Imagery")
     print("=" * 60)
-    print(f"Year: {year}")
+    print(f"Years: {years}")
     print(f"Zoom: {zoom}")
     print(f"Bounding box: {bbox}")
     print(f"  North: {bbox[0]}, South: {bbox[2]}")
     print(f"  West: {bbox[1]}, East: {bbox[3]}")
+    print(f"Output: {output_dir}")
     print()
     
-    # Output directories
-    output_dir = Path("/Users/suape/WorkDir/tile2net/output/nyc_test")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    results = []
     
-    tiles_dir = output_dir / f"nyc_{year}" / f"{TILE_SIZE}_{zoom}"
+    for year in years:
+        print("\n" + "=" * 60)
+        print(f"📅 Processing Year: {year}")
+        print("=" * 60)
+        
+        tiles_dir = output_dir / f"nyc_{year}" / f"{TILE_SIZE}_{zoom}"
+        
+        # Download tiles
+        print("📥 Downloading tiles...")
+        downloaded, failed, tile_bounds = download_tiles_for_area(
+            year=year,
+            zoom=zoom,
+            bbox=bbox,
+            output_dir=output_dir,
+            max_workers=8
+        )
+        
+        print(f"✅ Download complete: {downloaded} downloaded, {failed} failed/missing")
+        
+        # Stitch tiles
+        stitched_path = output_dir / f"nyc_{year}_stitched.png"
+        stitch_tiles(tiles_dir, stitched_path, tile_bounds)
+        
+        results.append({
+            "year": year,
+            "downloaded": downloaded,
+            "failed": failed,
+            "stitched": str(stitched_path)
+        })
     
-    # Download tiles
-    print("📥 Downloading tiles...")
-    downloaded, failed, tile_bounds = download_tiles_for_area(
-        year=year,
-        zoom=zoom,
-        bbox=bbox,
-        output_dir=output_dir,
-        max_workers=8
-    )
-    
-    print(f"\n✅ Download complete: {downloaded} downloaded, {failed} failed/missing")
-    
-    # Stitch tiles
-    stitched_path = output_dir / f"nyc_{year}_stitched.png"
-    stitch_tiles(tiles_dir, stitched_path, tile_bounds)
-    
+    # Summary
     print("\n" + "=" * 60)
-    print("Summary:")
-    print(f"  Tiles directory: {tiles_dir}")
-    print(f"  Stitched image: {stitched_path}")
+    print("SUMMARY")
+    print("=" * 60)
+    for r in results:
+        print(f"  {r['year']}: {r['downloaded']} tiles → {r['stitched']}")
     print("=" * 60)
 
 
