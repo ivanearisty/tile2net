@@ -19,9 +19,8 @@ vol = modal.Volume.from_name("tile2net-data", create_if_missing=True)
 
 @app.function(
     image=image,
-    gpu="A10G",
+    gpu="A100-80GB",
     cpu=4,
-    memory=16384,
     timeout=86400,
     volumes={"/data": vol}
 )
@@ -74,11 +73,9 @@ def process_year(year: int):
 def main():
     # The list of years to process
     years = [
-        1996,
-        2008,
-        2016,
-        2020,
-        2022 
+        2025,
+        2018,
+        2014,
     ]
     
     print(f"🚀 Launching batch job for years: {years}")
