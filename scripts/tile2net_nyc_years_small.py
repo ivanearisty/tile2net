@@ -79,7 +79,16 @@ def run_brooklyn_history(year: int):
 
 @app.local_entrypoint()
 def main():
-    years_to_process = [2014, 2016, 2018]
+    years_to_process = [
+        # 2008,
+        # 2010,
+        # 2012,
+        # 2014, 
+        # 2016, 
+        # 2018,
+        # 2020,
+        # 2022,
+        ]
     
     for year in years_to_process:
         print(f"\n🚀 Starting job for {year}...")
