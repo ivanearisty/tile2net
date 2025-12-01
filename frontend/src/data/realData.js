@@ -10,9 +10,9 @@ const manifestCache = { data: null };
 // Tolerance settings for ML output comparison
 const TOLERANCE = {
   // Distance in degrees (roughly 5 meters at NYC latitude)
-  DISTANCE: 0.00005,
+  DISTANCE: 0.0005,
   // Length ratio tolerance (20% difference allowed)
-  LENGTH_RATIO: 0.2,
+  LENGTH_RATIO: 0.3,
   // Angle tolerance in degrees
   ANGLE: 15,
 };

@@ -323,10 +323,6 @@ class Raster(Grid):
         self.batch = -1
         self.debug = debug
 
-        if boundary_path:
-            self.boundary_path = boundary_path
-            self.get_in_boundary(path=boundary_path)
-
         super().__init__(
             location=location,
             name=name,
@@ -337,6 +333,10 @@ class Raster(Grid):
             padding=padding,
             output_dir=output_dir,
         )
+
+        if boundary_path:
+            self.boundary_path = boundary_path
+            self.get_in_boundary(path=boundary_path)
 
     def __repr__(self):
         if self.boundary_path != "":
