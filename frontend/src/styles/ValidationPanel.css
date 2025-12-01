@@ -1,0 +1,435 @@
+.validation-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.validation-panel {
+  background: #1a1a2e;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.validation-header {
+  position: sticky;
+  top: 0;
+  background: #1a1a2e;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+}
+
+.validation-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.validation-subtitle {
+  margin: 0.5rem 0 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.validation-content {
+  padding: 1.5rem 2rem;
+}
+
+.validation-content section {
+  margin-bottom: 2rem;
+}
+
+.validation-content h3 {
+  color: #fff;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.validation-content h4 {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 1rem 0 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+/* Year Selection */
+.year-selectors {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.year-selector {
+  flex: 1;
+}
+
+.year-selector label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.year-selector select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.year-selector select:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.year-selector select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.year-selector select option {
+  background: #1a1a2e;
+  color: #fff;
+}
+
+.comparison-arrow {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 1.5rem;
+}
+
+/* Suggested Pairings */
+.suggested-pairings {
+  margin-bottom: 1.5rem;
+}
+
+.pairing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pairing-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pairing-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pairing-chip.selected {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4CAF50;
+}
+
+.pairing-chip .arrow {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pairing-chip .year-diff {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pairing-chip .detected-year {
+  color: #64B5F6;
+  font-weight: 600;
+}
+
+.pairing-chip .reference-year {
+  color: #FFB74D;
+  font-weight: 600;
+}
+
+/* Validate Button */
+.validate-button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validate-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.validate-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  color: #F44336;
+  font-size: 0.9rem;
+}
+
+/* Validation Results */
+.validation-results {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metric-card.precision {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.metric-card.recall {
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.metric-card.f1 {
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.metric-card.precision .metric-value { color: #4CAF50; }
+.metric-card.recall .metric-value { color: #2196F3; }
+.metric-card.f1 .metric-value { color: #9C27B0; }
+
+.metric-label {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.metric-description {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+/* Detailed Counts */
+.detailed-counts {
+  margin-bottom: 1rem;
+}
+
+.count-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.count-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.count-item .count {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.count-item .label {
+  color: #fff;
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.count-item .description {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+}
+
+.count-item.true-positive .count { color: #4CAF50; }
+.count-item.false-positive .count { color: #FF9800; }
+.count-item.false-negative .count { color: #F44336; }
+
+/* Totals Summary */
+.totals-summary {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+}
+
+.total-item {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.total-item strong {
+  color: #fff;
+}
+
+/* Show on Map Button */
+.show-map-button {
+  width: 100%;
+  padding: 0.875rem;
+  background: rgba(33, 150, 243, 0.2);
+  border: 1px solid #2196F3;
+  border-radius: 8px;
+  color: #2196F3;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.show-map-button:hover {
+  background: rgba(33, 150, 243, 0.3);
+}
+
+/* No Reference Data */
+.no-reference-data {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.no-reference-data h3 {
+  color: #FF9800;
+}
+
+.no-reference-data p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.5rem 0;
+}
+
+.instructions {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.instructions ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.instructions li {
+  margin: 0.5rem 0;
+}
+
+.instructions code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  color: #4CAF50;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .validation-panel-overlay {
+    padding: 1rem;
+  }
+  
+  .year-selectors {
+    flex-direction: column;
+  }
+  
+  .comparison-arrow {
+    transform: rotate(90deg);
+    margin: 0;
+  }
+  
+  .metrics-grid,
+  .count-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .totals-summary {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

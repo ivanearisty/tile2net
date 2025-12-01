@@ -68,8 +68,6 @@ def run_brooklyn_history(year: int):
 
     # --- EXECUTION ---
     print(f"⬇️  Downloading tiles for {year}...")
-    stitch_step = 4
-    raster.stitch(step=stitch_step)
     raster.generate(4) 
     
     print(f"🧠 Running Inference for {year}...")
@@ -80,14 +78,16 @@ def run_brooklyn_history(year: int):
 @app.local_entrypoint()
 def main():
     years_to_process = [
-        # 2008,
-        # 2010,
-        # 2012,
-        # 2014, 
-        # 2016, 
-        # 2018,
-        # 2020,
-        # 2022,
+        # 1996, # did not work
+        # 2004, # worked
+        # 2008, # did not work
+        # 2010, # worked
+        # 2012, # worked
+        # 2014, # worked
+        # 2016, # did not work
+        # 2018, # worked
+        # 2020, # did not work
+        # 2022, # worked
         ]
     
     for year in years_to_process:
@@ -101,3 +101,47 @@ def main():
     print("\nTo download results:")
     for year in years_to_process:
         print(f"modal volume get tile2net-data outputs/bk_gap_{year} ./bk_data_{year}")
+
+
+"""
+Error for 1996:
+
+Geocoding nys_1996, this may take a while...
+INFO       Geocoded 'nys_1996' to
+	'1996, NYS Route 32/Schuylerville Road, Jewell Corner, Gansevoort, Town of Northumberland, Saratoga County, New York, 12831, United States'
+INFO       Using base_tilesize=256 from source
+WARNING    No polygons were dumped
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/local/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/usr/local/lib/python3.10/site-packages/tile2net/__main__.py", line 6, in <module>
+    argh.dispatch_commands([
+  File "/usr/local/lib/python3.10/site-packages/argh/dispatching.py", line 358, in dispatch_commands
+    dispatch(parser, *args, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/argh/dispatching.py", line 183, in dispatch
+    for line in lines:
+  File "/usr/local/lib/python3.10/site-packages/argh/dispatching.py", line 294, in _execute_command
+    for line in result:
+  File "/usr/local/lib/python3.10/site-packages/argh/dispatching.py", line 247, in _call
+    result = function(namespace_obj)
+  File "/usr/local/lib/python3.10/site-packages/tile2net/namespace.py", line 671, in wrapper
+    return func(namespace, **kwargs)
+  File "/usr/local/lib/python3.10/site-packages/tile2net/tileseg/inference/inference.py", line 405, in inference
+    return inference.inference()
+  File "/usr/local/lib/python3.10/site-packages/tile2net/tileseg/inference/inference.py", line 210, in inference
+    self.validate(
+  File "/usr/local/lib/python3.10/site-packages/tile2net/tileseg/inference/inference.py", line 316, in validate
+    grid.save_ntw_polygons(poly_network)
+  File "/usr/local/lib/python3.10/site-packages/tile2net/raster/grid.py", line 676, in save_ntw_polygons
+    poly_network.set_crs(self.crs, inplace=True)
+  File "/usr/local/lib/python3.10/site-packages/geopandas/geodataframe.py", line 1741, in set_crs
+    df.geometry = df.geometry.set_crs(
+  File "/usr/local/lib/python3.10/site-packages/pandas/core/generic.py", line 6321, in __getattr__
+    return object.__getattribute__(self, name)
+  File "/usr/local/lib/python3.10/site-packages/geopandas/geodataframe.py", line 287, in _get_geometry
+    raise AttributeError(msg)
+AttributeError: You are calling a geospatial method on the GeoDataFrame, but the active geometry column to use has not been set. 
+There are no existing columns with geometry data type. You can add a geometry column as the active geometry column with df.set_geometry. 
+"""

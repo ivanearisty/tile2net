@@ -1,0 +1,16 @@
+{
+  "name": "NYC Planimetrics Reference Data",
+  "description": "Official NYC planimetrics data for validation",
+  "available_years": [
+    1996,
+    2004,
+    2014,
+    2022
+  ],
+  "files": {
+    "1996": "reference/planimetrics_1996.geojson",
+    "2004": "reference/planimetrics_2004.geojson",
+    "2014": "reference/planimetrics_2014.geojson",
+    "2022": "reference/planimetrics_2022.geojson"
+  }
+}

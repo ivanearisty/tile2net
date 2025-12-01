@@ -146,7 +146,8 @@ body {
 .compare-section,
 .slider-section,
 .summary-section,
-.metrics-section {
+.metrics-section,
+.validation-section {
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
 }
@@ -157,6 +158,52 @@ body {
     rgba(59, 130, 246, 0.05) 0%,
     transparent 50%
   );
+}
+
+/* Validation Section */
+.validation-section {
+  background: linear-gradient(
+    135deg,
+    rgba(156, 39, 176, 0.05) 0%,
+    transparent 50%
+  );
+}
+
+.validation-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(103, 58, 183, 0.2));
+  border: 1px solid rgba(156, 39, 176, 0.4);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.validation-button:hover {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(103, 58, 183, 0.3));
+  border-color: rgba(156, 39, 176, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(156, 39, 176, 0.2);
+}
+
+.validation-button svg {
+  width: 20px;
+  height: 20px;
+  stroke: #AB47BC;
+}
+
+.validation-hint {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* Sidebar Footer / Legend */

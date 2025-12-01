@@ -6,6 +6,8 @@ import MetricsDashboard from './components/MetricsDashboard';
 import ChangeSummary from './components/ChangeSummary';
 import CompareControls from './components/CompareControls';
 import ImageOverlay from './components/ImageOverlay';
+import ValidationPanel from './components/ValidationPanel';
+import ValidationMap from './components/ValidationMap';
 import { 
   loadManifest, 
   getDataForYear, 
@@ -38,6 +40,11 @@ function App() {
   const [isImageOverlayOpen, setIsImageOverlayOpen] = useState(false);
   const [imageBeforeYear, setImageBeforeYear] = useState(2014);
   const [imageAfterYear, setImageAfterYear] = useState(2018);
+
+  // Validation mode state
+  const [isValidationPanelOpen, setIsValidationPanelOpen] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
+  const [showValidationMap, setShowValidationMap] = useState(false);
 
   // Load manifest and initial data
   useEffect(() => {
@@ -127,11 +134,21 @@ function App() {
     }
   }, []);
 
+  const handleValidationResult = useCallback((result) => {
+    setValidationResult(result);
+  }, []);
+
+  const handleShowValidationMap = useCallback((result) => {
+    setValidationResult(result);
+    setShowValidationMap(true);
+    setIsValidationPanelOpen(false);
+  }, []);
+
   if (loading) {
     return (
       <div className="app-loading">
         <div className="loading-spinner"></div>
-        <p>Loading Grand Plaza data...</p>
+        <p>Loading data...</p>
       </div>
     );
   }
@@ -183,6 +200,23 @@ function App() {
             onOpenImageOverlay={() => setIsImageOverlayOpen(true)}
             availableYears={availableYears}
           />
+        </section>
+
+        {/* Validation Button */}
+        <section className="validation-section">
+          <button 
+            className="validation-button"
+            onClick={() => setIsValidationPanelOpen(true)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 12l2 2 4-4" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            Validate Against Reference Data
+          </button>
+          <p className="validation-hint">
+            Compare detected infrastructure with NYC Planimetrics
+          </p>
         </section>
 
         {/* Timeline slider - only in normal mode */}
@@ -246,6 +280,25 @@ function App() {
         availableYears={availableYears}
         center={mapCenter}
       />
+
+      {/* Validation Panel */}
+      <ValidationPanel
+        isOpen={isValidationPanelOpen}
+        onClose={() => setIsValidationPanelOpen(false)}
+        availableDetectedYears={availableYears}
+        onValidationResult={handleValidationResult}
+        onShowValidationMap={handleShowValidationMap}
+      />
+
+      {/* Validation Map View */}
+      {showValidationMap && validationResult && (
+        <ValidationMap
+          validationResult={validationResult}
+          center={mapCenter}
+          zoom={mapZoom}
+          onClose={() => setShowValidationMap(false)}
+        />
+      )}
     </div>
   );
 }

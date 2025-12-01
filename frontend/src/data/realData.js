@@ -1,5 +1,4 @@
 /**
- * Real data loader for tile2net Grand Plaza output
  * Loads GeoJSON files and computes temporal changes with spatial tolerance
  */
 
