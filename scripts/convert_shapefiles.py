@@ -2,15 +2,23 @@
 Convert tile2net shapefiles to GeoJSON for the frontend app
 Uses pyshp library for shapefile reading
 
-Updated to support bk_central_YYYY folder structure from new tile2net runs
+Updated to support both:
+- outputs/nyc_YYYY folder structure (current)
+- output/bk_central_YYYY folder structure (legacy)
+
+Usage:
+  python convert_shapefiles.py              # Convert all years
+  python convert_shapefiles.py 2001 2006    # Convert specific years only
 """
 import json
 import os
+import sys
 from pathlib import Path
 import shapefile
 
-# Paths
-OUTPUT_DIR = Path("output")
+# Paths - check both possible output directories
+OUTPUT_DIR = Path("outputs")  # Current structure
+LEGACY_OUTPUT_DIR = Path("output")  # Legacy structure
 FRONTEND_DATA_DIR = Path("frontend/public/data")
 
 # Create output directory
@@ -67,37 +75,65 @@ def find_shapefile_in_dir(base_dir):
     return None
 
 def discover_years():
-    """Discover available years from the output folder"""
-    years = []
+    """Discover available years from output folders"""
+    years_info = {}  # year -> (base_dir, folder_name)
     
-    for folder in OUTPUT_DIR.iterdir():
-        if folder.is_dir() and folder.name.startswith("bk_central_"):
-            try:
-                year = int(folder.name.split("_")[-1])
-                years.append(year)
-            except ValueError:
-                continue
+    # Check current structure: outputs/nyc_YYYY/
+    if OUTPUT_DIR.exists():
+        for folder in OUTPUT_DIR.iterdir():
+            if folder.is_dir() and folder.name.startswith("nyc_"):
+                try:
+                    year = int(folder.name.split("_")[-1])
+                    years_info[year] = (OUTPUT_DIR, folder.name, "nyc")
+                except ValueError:
+                    continue
     
-    return sorted(years)
+    # Check legacy structure: output/bk_central_YYYY/
+    if LEGACY_OUTPUT_DIR.exists():
+        for folder in LEGACY_OUTPUT_DIR.iterdir():
+            if folder.is_dir() and folder.name.startswith("bk_central_"):
+                try:
+                    year = int(folder.name.split("_")[-1])
+                    if year not in years_info:  # Don't override newer structure
+                        years_info[year] = (LEGACY_OUTPUT_DIR, folder.name, "bk_central")
+                except ValueError:
+                    continue
+    
+    return years_info
 
-# Discover years from output folder
-years = discover_years()
+# Discover years from output folders
+years_info = discover_years()
 
-if not years:
-    print("No bk_central_YYYY folders found in output/")
+if not years_info:
+    print("No nyc_YYYY or bk_central_YYYY folders found!")
     exit(1)
+
+# Filter to specific years if provided as command line args
+if len(sys.argv) > 1:
+    requested_years = [int(y) for y in sys.argv[1:]]
+    years_info = {y: v for y, v in years_info.items() if y in requested_years}
+    if not years_info:
+        print(f"None of the requested years {requested_years} were found!")
+        exit(1)
 
 print("Converting tile2net shapefiles to GeoJSON...")
 print("=" * 50)
-print(f"Found years: {years}")
+print(f"Years to convert: {sorted(years_info.keys())}")
 
 # Track successful conversions
 converted_years = []
 location_info = None
 
-for year in years:
-    # New folder structure: output/bk_central_YYYY/bk_central_YYYY/
-    year_dir = OUTPUT_DIR / f"bk_central_{year}" / f"bk_central_{year}"
+for year in sorted(years_info.keys()):
+    base_dir, folder_name, folder_type = years_info[year]
+    
+    # Handle different folder structures
+    if folder_type == "nyc":
+        # Current structure: outputs/nyc_YYYY/network/
+        year_dir = base_dir / folder_name
+    else:
+        # Legacy structure: output/bk_central_YYYY/bk_central_YYYY/
+        year_dir = base_dir / folder_name / folder_name
     
     if not year_dir.exists():
         print(f"\n[{year}] Directory not found: {year_dir}")

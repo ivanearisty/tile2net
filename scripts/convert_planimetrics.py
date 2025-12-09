@@ -1,12 +1,19 @@
 """
 Convert NYC Planimetrics Historical Data shapefiles to GeoJSON for validation
-Supports years: 1996, 2004, 2014, 2022
+
+Supports shapefile years: 1996, 2001, 2004, 2006, 2008, 2010, 2012, 2018
+For .gdb years (2014, 2016, 2017, 2022), use convert_planimetrics_gdb.py
 
 NYC Planimetrics data uses NAD83 / New York Long Island (ftUS) - EPSG:2263
 We need to transform to WGS84 (EPSG:4326) for web mapping
+
+Usage:
+    python convert_planimetrics.py                  # Convert all shapefile years
+    python convert_planimetrics.py 2001 2006 2018  # Convert specific years
 """
 import json
 import math
+import sys
 from pathlib import Path
 import shapefile
 
@@ -17,15 +24,24 @@ FRONTEND_DATA_DIR = Path("frontend/public/data/reference")
 # Create output directory
 FRONTEND_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Year mappings to folder names
+# Year mappings to folder names (supports both .gdb and shapefile folders)
 YEAR_FOLDERS = {
-    1996: "NYC_Planimetrics_1996.gdb",
-    2004: "NYC_Planimetrics_2004.gdb", 
+    1996: "NYC_Planimetrics_1996",
+    2001: "NYC_Planimetrics_2001",
+    2004: "NYC_Planimetrics_2004", 
+    2006: "NYC_Planimetrics_2006",
+    2008: "NYC_Planimetrics_2008",
+    2010: "NYC_Planimetrics_2010",
+    2012: "NYC_Planimetrics_2012",
     2014: "NYC_Planimetrics_2014.gdb",
+    2016: "NYC_Planimetrics_2016.gdb",
+    2017: "NYC_Planimetrics_2017.gdb",
+    2018: "NYC_Planimetrics_2018",
     2022: "NYC_Planimetrics_2022.gdb"
 }
 
 # Relevant layers for pedestrian infrastructure validation
+# Empty list = use keyword matching (sidewalk, crosswalk, etc.)
 PEDESTRIAN_LAYERS = {
     1996: [
         "centerln",      # Street centerlines
@@ -34,15 +50,30 @@ PEDESTRIAN_LAYERS = {
         "opensp",        # Open spaces/plazas
         "opensp_l",      # Open space boundaries
     ],
+    2001: [],  # Use keyword matching
     2004: [
         "street_centreline",           # Street centerlines
         "nonvehicular_centerline",     # Non-vehicular paths!
         "curb_block",                  # Curb features
         "Open_Space",                  # Open spaces
     ],
-    2014: [],
-    2022: []
+    2006: [],  # Use keyword matching
+    2008: [],  # Use keyword matching
+    2010: [],  # Use keyword matching
+    2012: [],  # Use keyword matching
+    2014: [],  # Use keyword matching
+    2016: [],  # Use keyword matching
+    2017: [],  # Use keyword matching
+    2018: [],  # Use keyword matching
+    2022: [],  # Use keyword matching
 }
+
+# Keywords for auto-detecting pedestrian-related layers
+PEDESTRIAN_KEYWORDS = [
+    'sidewalk', 'crosswalk', 'pedestrian', 'curb', 
+    'centerline', 'street', 'plaza', 'median',
+    'path', 'walkway', 'pavement', 'roadbed'
+]
 
 # NYC State Plane (EPSG:2263) to WGS84 (EPSG:4326) transformation
 # EPSG:2263 parameters: NAD83 / New York Long Island (ftUS)
@@ -250,6 +281,12 @@ def coords_in_bbox(coords, bbox):
         return True
 
 
+def is_pedestrian_layer(layer_name):
+    """Check if layer name matches pedestrian infrastructure keywords"""
+    layer_lower = layer_name.lower()
+    return any(kw in layer_lower for kw in PEDESTRIAN_KEYWORDS)
+
+
 def convert_shapefile_year(year, bbox=None, relevant_only=True):
     """Convert all relevant shapefiles for a given year"""
     folder = YEAR_FOLDERS.get(year)
@@ -259,7 +296,15 @@ def convert_shapefile_year(year, bbox=None, relevant_only=True):
     
     folder_path = PLANIMETRICS_DIR / folder
     if not folder_path.exists():
-        print(f"Folder not found: {folder_path}")
+        # Try with .gdb extension if shapefile folder not found
+        folder_path = PLANIMETRICS_DIR / f"{folder}.gdb"
+        if not folder_path.exists():
+            print(f"Folder not found: {PLANIMETRICS_DIR / folder}")
+            return None
+    
+    # If it's a .gdb file, skip (use convert_planimetrics_gdb.py instead)
+    if folder_path.suffix == '.gdb':
+        print(f"Skipping {year}: Use convert_planimetrics_gdb.py for .gdb files")
         return None
     
     print(f"\n{'='*60}")
@@ -273,15 +318,26 @@ def convert_shapefile_year(year, bbox=None, relevant_only=True):
     shp_files = list(folder_path.glob("*.shp"))
     
     print(f"Found {len(shp_files)} shapefiles")
-    if relevant_only and relevant_layers:
-        print(f"Processing only pedestrian-relevant layers: {relevant_layers}")
+    
+    if relevant_only:
+        if relevant_layers:
+            print(f"Processing only specified layers: {relevant_layers}")
+        else:
+            print(f"Using keyword matching for pedestrian layers")
     
     for shp_path in shp_files:
         layer_name = shp_path.stem
         
-        if relevant_only and relevant_layers:
-            if layer_name.lower() not in [l.lower() for l in relevant_layers]:
-                continue
+        # Filter by relevance
+        if relevant_only:
+            if relevant_layers:
+                # Use explicit layer list
+                if layer_name.lower() not in [l.lower() for l in relevant_layers]:
+                    continue
+            else:
+                # Use keyword matching
+                if not is_pedestrian_layer(layer_name):
+                    continue
         
         print(f"\n  Processing: {layer_name}")
         
@@ -327,7 +383,9 @@ def create_reference_manifest():
         "files": {}
     }
     
-    for year in [1996, 2004, 2014, 2022]:
+    # Check all possible years
+    all_years = [1996, 2001, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2017, 2018, 2022]
+    for year in all_years:
         file_path = FRONTEND_DATA_DIR / f"planimetrics_{year}.geojson"
         if file_path.exists():
             try:
@@ -343,42 +401,60 @@ def create_reference_manifest():
     with open(manifest_path, 'w') as f:
         json.dump(manifest, f, indent=2)
     print(f"\nCreated manifest: {manifest_path}")
+    print(f"Available years: {manifest['available_years']}")
     
     return manifest
 
 
-# Brooklyn Grand Plaza bbox in WGS84 [min_lat, max_lat, min_lon, max_lon]
+# Brooklyn Central bbox in WGS84 [min_lat, max_lat, min_lon, max_lon]
 BROOKLYN_BBOX = [40.65, 40.70, -74.00, -73.95]
+
+# Shapefile years (non-.gdb)
+SHAPEFILE_YEARS = [1996, 2001, 2004, 2006, 2008, 2010, 2012, 2018]
 
 
 def main():
-    print("Converting NYC Planimetrics Historical Data to GeoJSON")
+    print("Converting NYC Planimetrics Historical Data (Shapefiles) to GeoJSON")
     print("=" * 60)
     print("Transforming from EPSG:2263 (NY State Plane) to EPSG:4326 (WGS84)")
     
     # Test the transformation with a known point
-    # Empire State Building: State Plane ~(988000, 212000) -> WGS84 (-73.9857, 40.7484)
     test_lon, test_lat = state_plane_to_wgs84(988000, 212000)
     print(f"\nTransformation test (Empire State Building area):")
     print(f"  Input: (988000, 212000) ft")
     print(f"  Output: ({test_lon:.6f}, {test_lat:.6f})")
     print(f"  Expected: approximately (-73.98, 40.75)")
     
-    years_to_process = [1996, 2004]
+    # Parse command line arguments for specific years
+    if len(sys.argv) > 1:
+        try:
+            years_to_process = [int(y) for y in sys.argv[1:] if y.isdigit()]
+        except ValueError:
+            print("Usage: python convert_planimetrics.py [year1] [year2] ...")
+            return
+    else:
+        years_to_process = SHAPEFILE_YEARS
     
+    print(f"\n📅 Years to process: {years_to_process}")
+    
+    successful = []
     for year in years_to_process:
         data = convert_shapefile_year(year, bbox=BROOKLYN_BBOX, relevant_only=True)
         if data and data['features']:
             output_path = FRONTEND_DATA_DIR / f"planimetrics_{year}.geojson"
             save_geojson(data, output_path)
             print(f"  Total features for {year}: {len(data['features'])}")
+            successful.append(year)
         else:
             print(f"  No features found for {year}")
     
     create_reference_manifest()
     
     print("\n" + "=" * 60)
-    print("Conversion complete!")
+    print(f"✅ Conversion complete!")
+    print(f"📅 Successfully converted: {successful}")
+    print(f"\n💡 For .gdb years (2014, 2016, 2017, 2022), run:")
+    print(f"   python convert_planimetrics_gdb.py")
 
 
 if __name__ == "__main__":

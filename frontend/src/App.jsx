@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Map from './components/Map';
 import CompareMap from './components/CompareMap';
 import TemporalSlider from './components/TemporalSlider';
@@ -8,21 +8,51 @@ import CompareControls from './components/CompareControls';
 import ImageOverlay from './components/ImageOverlay';
 import ValidationPanel from './components/ValidationPanel';
 import ValidationMap from './components/ValidationMap';
+import YearSettings from './components/YearSettings';
 import { 
   loadManifest, 
   getDataForYear, 
   getSummaryFromData,
-  generateMetricsFromRealData 
+  generateMetricsFromRealData,
+  setTolerance,
+  getTolerance,
+  getDefaultTolerance
 } from './data/realData';
+import { loadMapPosition } from './utils/mapPosition';
 import './styles/App.css';
+
+// Load disabled years from localStorage
+const loadDisabledYears = () => {
+  try {
+    const stored = localStorage.getItem('tile2net_disabled_years');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Save disabled years to localStorage
+const saveDisabledYears = (years) => {
+  try {
+    localStorage.setItem('tile2net_disabled_years', JSON.stringify(years));
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 function App() {
   // Data state
   const [manifest, setManifest] = useState(null);
-  const [availableYears, setAvailableYears] = useState([2014, 2016, 2018]);
+  const [allYears, setAllYears] = useState([2014, 2016, 2018]);
+  const [disabledYears, setDisabledYears] = useState(loadDisabledYears);
   const [mapCenter, setMapCenter] = useState([-73.9695, 40.6744]);
   const [mapZoom, setMapZoom] = useState(17);
   const [loading, setLoading] = useState(true);
+
+  // Compute available years (excluding disabled)
+  const availableYears = useMemo(() => {
+    return allYears.filter(year => !disabledYears.includes(year));
+  }, [allYears, disabledYears]);
   
   // Year selection
   const [selectedYear, setSelectedYear] = useState(2018);
@@ -46,27 +76,55 @@ function App() {
   const [validationResult, setValidationResult] = useState(null);
   const [showValidationMap, setShowValidationMap] = useState(false);
 
+  // Tolerance settings
+  const [tolerance, setToleranceState] = useState(getDefaultTolerance);
+  const [isReloadingTolerance, setIsReloadingTolerance] = useState(false);
+  const [toleranceTimeoutRef, setToleranceTimeoutRef] = useState(null);
+
+  // Type visibility toggles
+  const [enabledTypes, setEnabledTypes] = useState({
+    sidewalk: true,
+    crosswalk: true,
+    road: true
+  });
+
   // Load manifest and initial data
   useEffect(() => {
     async function initializeApp() {
       setLoading(true);
       
       try {
+        // Try to load saved map position first
+        const savedPosition = loadMapPosition();
+        
         // Load manifest
         const manifestData = await loadManifest();
         if (manifestData) {
           setManifest(manifestData);
-          setAvailableYears(manifestData.years);
-          setMapCenter(manifestData.location.center);
-          setMapZoom(manifestData.location.zoom);
-          setSelectedYear(manifestData.years[manifestData.years.length - 1]);
-          setCompareLeftYear(manifestData.years[0]);
-          setCompareRightYear(manifestData.years[manifestData.years.length - 1]);
+          setAllYears(manifestData.years);
+          
+          // Use saved position if available, otherwise use manifest default
+          if (savedPosition) {
+            setMapCenter(savedPosition.center);
+            setMapZoom(savedPosition.zoom);
+          } else {
+            setMapCenter(manifestData.location.center);
+            setMapZoom(manifestData.location.zoom);
+          }
+          
+          // Filter out disabled years for initial selection
+          const enabledYears = manifestData.years.filter(y => !loadDisabledYears().includes(y));
+          if (enabledYears.length > 0) {
+            setSelectedYear(enabledYears[enabledYears.length - 1]);
+            setCompareLeftYear(enabledYears[0]);
+            setCompareRightYear(enabledYears[enabledYears.length - 1]);
+          }
         }
         
-        // Generate metrics
+        // Generate metrics (will be regenerated when enabledTypes changes)
         const years = manifestData?.years || [2014, 2016, 2018];
-        const metrics = await generateMetricsFromRealData(years);
+        // Use current enabledTypes state (defaults to all enabled)
+        const metrics = await generateMetricsFromRealData(years, enabledTypes);
         setMetricsData(metrics);
         
       } catch (error) {
@@ -78,6 +136,19 @@ function App() {
     
     initializeApp();
   }, []);
+
+  // Handle when selected year gets disabled
+  useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[availableYears.length - 1]);
+    }
+    if (availableYears.length > 0 && !availableYears.includes(compareLeftYear)) {
+      setCompareLeftYear(availableYears[0]);
+    }
+    if (availableYears.length > 0 && !availableYears.includes(compareRightYear)) {
+      setCompareRightYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedYear, compareLeftYear, compareRightYear]);
 
   // Load data when selected year changes
   useEffect(() => {
@@ -144,6 +215,87 @@ function App() {
     setIsValidationPanelOpen(false);
   }, []);
 
+  // Year settings handlers
+  const handleToggleYear = useCallback((year) => {
+    setDisabledYears(prev => {
+      const newDisabled = prev.includes(year)
+        ? prev.filter(y => y !== year)
+        : [...prev, year];
+      saveDisabledYears(newDisabled);
+      return newDisabled;
+    });
+  }, []);
+
+  const handleEnableAllYears = useCallback(() => {
+    setDisabledYears([]);
+    saveDisabledYears([]);
+  }, []);
+
+  const handleDisableAllYears = useCallback(() => {
+    // Keep at least one year enabled
+    const toDisable = allYears.slice(0, -1);
+    setDisabledYears(toDisable);
+    saveDisabledYears(toDisable);
+  }, [allYears]);
+
+  // Handle type toggle
+  const handleToggleType = useCallback((type) => {
+    setEnabledTypes(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  }, []);
+
+  // Track if initial load is complete
+  const isInitialLoad = useRef(true);
+
+  // Regenerate metrics when enabledTypes changes (but not on initial load)
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+    
+    async function regenerateMetrics() {
+      if (!allYears.length) return;
+      
+      const metrics = await generateMetricsFromRealData(allYears, enabledTypes);
+      setMetricsData(metrics);
+    }
+    
+    regenerateMetrics();
+  }, [enabledTypes, allYears]);
+
+  // Handle tolerance change with debounce
+  const handleToleranceChange = useCallback((newTolerance) => {
+    setToleranceState(newTolerance);
+    setIsReloadingTolerance(true);
+    
+    // Clear existing timeout
+    if (toleranceTimeoutRef) {
+      clearTimeout(toleranceTimeoutRef);
+    }
+    
+    // Debounce the actual update
+    const timeoutId = setTimeout(async () => {
+      setTolerance(newTolerance);
+      
+      // Reload compare data if in compare mode
+      if (isCompareMode) {
+        const [left, right] = await Promise.all([
+          getDataForYear(compareLeftYear, availableYears),
+          getDataForYear(compareRightYear, availableYears)
+        ]);
+        setLeftData(left);
+        setRightData(right);
+      }
+      
+      setIsReloadingTolerance(false);
+    }, 300);
+    
+    setToleranceTimeoutRef(timeoutId);
+  }, [toleranceTimeoutRef, isCompareMode, compareLeftYear, compareRightYear, availableYears]);
+
   if (loading) {
     return (
       <div className="app-loading">
@@ -164,6 +316,7 @@ function App() {
             rightData={rightData}
             center={mapCenter}
             zoom={mapZoom}
+            enabledTypes={enabledTypes}
           />
         ) : (
           <>
@@ -172,6 +325,7 @@ function App() {
               selectedYear={selectedYear}
               center={mapCenter}
               zoom={mapZoom}
+              enabledTypes={enabledTypes}
             />
             <div className="map-overlay">
               <div className="year-badge">{selectedYear}</div>
@@ -182,9 +336,18 @@ function App() {
       
       <aside className="sidebar">
         <header className="sidebar-header">
-          <h1 className="app-title">{manifest?.name || 'Brooklyn Pedestrian Infrastructure'}</h1>
+          <div className="header-row">
+            <h1 className="app-title">{manifest?.name || 'Brooklyn Pedestrian Infrastructure'}</h1>
+            <YearSettings
+              allYears={allYears}
+              disabledYears={disabledYears}
+              onToggleYear={handleToggleYear}
+              onEnableAll={handleEnableAllYears}
+              onDisableAll={handleDisableAllYears}
+            />
+          </div>
           <p className="app-subtitle">
-            {manifest?.location?.name || 'Grand Plaza'} • {availableYears[0]}–{availableYears[availableYears.length - 1]}
+            {manifest?.location?.name || 'Grand Plaza'} • {availableYears.length > 0 ? `${availableYears[0]}–${availableYears[availableYears.length - 1]}` : 'No years selected'}
           </p>
         </header>
 
@@ -199,6 +362,9 @@ function App() {
             onRightYearChange={setCompareRightYear}
             onOpenImageOverlay={() => setIsImageOverlayOpen(true)}
             availableYears={availableYears}
+            tolerance={tolerance}
+            onToleranceChange={handleToleranceChange}
+            isReloading={isReloadingTolerance}
           />
         </section>
 
@@ -235,7 +401,11 @@ function App() {
         <section className="summary-section">
           <ChangeSummary 
             summary={isCompareMode ? getSummaryFromData(rightData) : summary} 
-            year={isCompareMode ? compareRightYear : selectedYear} 
+            year={isCompareMode ? compareRightYear : selectedYear}
+            compareFromYear={isCompareMode ? compareLeftYear : null}
+            calibration={isCompareMode ? rightData?.calibration : null}
+            enabledTypes={enabledTypes}
+            onToggleType={handleToggleType}
           />
         </section>
 

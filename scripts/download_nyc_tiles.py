@@ -198,7 +198,7 @@ def stitch_tiles(tiles_dir, output_path, tile_bounds):
 
 def main():
     # Configuration
-    years = [1924, 1951, 1996, 2001, 2004, 2006, 2008, 2010, 2012, 2014, 2018]
+    years = [2001, 2006, 2008, 2018]  # Re-downloading failed years only
     zoom = 19    # Zoom level (19 = high detail, matching tile2net)
     
     # Bounding box for North/Central Brooklyn

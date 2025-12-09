@@ -1,25 +1,73 @@
 {
-  "name": "Grand Plaza Brooklyn",
+  "name": "Brooklyn Central Pedestrian Infrastructure",
   "years": [
+    1924,
+    1951,
+    1996,
+    2001,
+    2004,
+    2006,
+    2008,
+    2010,
+    2012,
     2014,
     2016,
-    2018
+    2018,
+    2020,
+    2022,
+    2024
   ],
   "location": {
-    "name": "Grand Plaza, Brooklyn",
+    "name": "Brooklyn Central",
     "center": [
-      -73.9695,
-      40.6744
+      -73.97626060507156,
+      40.65003991638021
     ],
-    "zoom": 17,
+    "zoom": 15,
     "bbox": [
-      40.6733,
-      40.6754,
-      -73.9709,
-      -73.9682
+      40.64989308122761,
+      40.65018675153281,
+      -73.97652308704,
+      -73.97599812310312
     ]
   },
   "files": {
+    "1924": {
+      "network": "network_1924.geojson",
+      "polygons": "polygons_1924.geojson"
+    },
+    "1951": {
+      "network": "network_1951.geojson",
+      "polygons": "polygons_1951.geojson"
+    },
+    "1996": {
+      "network": "network_1996.geojson",
+      "polygons": "polygons_1996.geojson"
+    },
+    "2001": {
+      "network": "network_2001.geojson",
+      "polygons": "polygons_2001.geojson"
+    },
+    "2004": {
+      "network": "network_2004.geojson",
+      "polygons": "polygons_2004.geojson"
+    },
+    "2006": {
+      "network": "network_2006.geojson",
+      "polygons": "polygons_2006.geojson"
+    },
+    "2008": {
+      "network": "network_2008.geojson",
+      "polygons": "polygons_2008.geojson"
+    },
+    "2010": {
+      "network": "network_2010.geojson",
+      "polygons": "polygons_2010.geojson"
+    },
+    "2012": {
+      "network": "network_2012.geojson",
+      "polygons": "polygons_2012.geojson"
+    },
     "2014": {
       "network": "network_2014.geojson",
       "polygons": "polygons_2014.geojson"
@@ -31,6 +79,18 @@
     "2018": {
       "network": "network_2018.geojson",
       "polygons": "polygons_2018.geojson"
+    },
+    "2020": {
+      "network": "network_2020.geojson",
+      "polygons": "polygons_2020.geojson"
+    },
+    "2022": {
+      "network": "network_2022.geojson",
+      "polygons": "polygons_2022.geojson"
+    },
+    "2024": {
+      "network": "network_2024.geojson",
+      "polygons": "polygons_2024.geojson"
     }
   }
 }

@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { saveMapPosition, loadMapPosition } from '../utils/mapPosition';
 import '../styles/CompareMap.css';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -11,7 +12,8 @@ const CompareMap = ({
   leftData, 
   rightData,
   center = [-73.9695, 40.6744],
-  zoom = 17
+  zoom = 17,
+  enabledTypes = { sidewalk: true, crosswalk: true, road: true }
 }) => {
   const containerRef = useRef(null);
   const leftMapContainer = useRef(null);
@@ -20,9 +22,15 @@ const CompareMap = ({
   const rightMap = useRef(null);
   const isSyncing = useRef(false);
   
-  // Store initial values in refs
-  const initialCenter = useRef(center);
-  const initialZoom = useRef(zoom);
+  // Load saved position or use provided props
+  const savedPosition = loadMapPosition();
+  const initialCenter = useRef(savedPosition?.center || center);
+  const initialZoom = useRef(savedPosition?.zoom || zoom);
+  const initialBearing = useRef(savedPosition?.bearing || 0);
+  const initialPitch = useRef(savedPosition?.pitch || 0);
+  
+  // Debounce timer for saving position
+  const savePositionTimeout = useRef(null);
   
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -36,8 +44,8 @@ const CompareMap = ({
       style: 'mapbox://styles/mapbox/dark-v11',
       center: initialCenter.current,
       zoom: initialZoom.current,
-      pitch: 0,
-      bearing: 0,
+      pitch: initialPitch.current,
+      bearing: initialBearing.current,
     };
 
     // Left map (before)
@@ -64,7 +72,7 @@ const CompareMap = ({
         data: { type: 'FeatureCollection', features: [] }
       });
 
-      addInfrastructureLayers(leftMap.current, 'left');
+      // Layers will be added when enabledTypes is available
     });
 
     // Setup right map
@@ -76,7 +84,7 @@ const CompareMap = ({
         data: { type: 'FeatureCollection', features: [] }
       });
 
-      addInfrastructureLayers(rightMap.current, 'right');
+      // Layers will be added when enabledTypes is available
     });
 
     // Sync map movements with guard against infinite loop
@@ -107,7 +115,36 @@ const CompareMap = ({
     leftMap.current.on('move', syncFromLeft);
     rightMap.current.on('move', syncFromRight);
 
+    // Save map position when user moves/zooms (use right map as source of truth)
+    const handleMapMove = () => {
+      if (!rightMap.current) return;
+      
+      // Debounce saves to avoid excessive localStorage writes
+      if (savePositionTimeout.current) {
+        clearTimeout(savePositionTimeout.current);
+      }
+      
+      savePositionTimeout.current = setTimeout(() => {
+        if (rightMap.current) {
+          saveMapPosition({
+            center: rightMap.current.getCenter(),
+            zoom: rightMap.current.getZoom(),
+            bearing: rightMap.current.getBearing(),
+            pitch: rightMap.current.getPitch()
+          });
+        }
+      }, 500); // Save 500ms after user stops moving
+    };
+
+    rightMap.current.on('moveend', handleMapMove);
+    rightMap.current.on('zoomend', handleMapMove);
+    rightMap.current.on('rotateend', handleMapMove);
+    rightMap.current.on('pitchend', handleMapMove);
+
     return () => {
+      if (savePositionTimeout.current) {
+        clearTimeout(savePositionTimeout.current);
+      }
       if (leftMap.current) {
         leftMap.current.remove();
         leftMap.current = null;
@@ -119,7 +156,41 @@ const CompareMap = ({
     };
   }, []); // Empty dependency array - only initialize once
 
-  const addInfrastructureLayers = (map, side) => {
+  // Helper function to build type filter
+  const buildTypeFilter = useCallback((statusFilter) => {
+    const typeConditions = [];
+    
+    // Get feature type from properties (f_type, class, or type)
+    const getFeatureType = ['coalesce', 
+      ['get', 'f_type'],
+      ['get', 'class'],
+      ['get', 'type']
+    ];
+    
+    if (enabledTypes.sidewalk) {
+      typeConditions.push(['==', getFeatureType, 'sidewalk']);
+    }
+    if (enabledTypes.crosswalk) {
+      typeConditions.push(['==', getFeatureType, 'crosswalk']);
+    }
+    if (enabledTypes.road) {
+      typeConditions.push(['==', getFeatureType, 'road']);
+    }
+    
+    // If no types are enabled, show nothing
+    if (typeConditions.length === 0) {
+      return ['literal', false];
+    }
+    
+    // Combine status filter with type filter
+    if (typeConditions.length === 1) {
+      return ['all', statusFilter, typeConditions[0]];
+    } else {
+      return ['all', statusFilter, ['any', ...typeConditions]];
+    }
+  }, [enabledTypes]);
+
+  const addInfrastructureLayers = useCallback((map, side) => {
     const sourceId = `infrastructure-${side}`;
 
     // Zoom-based line width
@@ -132,11 +203,26 @@ const CompareMap = ({
       10, 0.75, 14, 2, 17, 4, 20, 6
     ];
 
+    const unchangedLayerId = `infrastructure-unchanged-${side}`;
+    const addedLayerId = `infrastructure-added-${side}`;
+    const removedLayerId = `infrastructure-removed-${side}`;
+
+    // Remove existing layers if they exist
+    if (map.getLayer(unchangedLayerId)) {
+      map.removeLayer(unchangedLayerId);
+    }
+    if (map.getLayer(addedLayerId)) {
+      map.removeLayer(addedLayerId);
+    }
+    if (map.getLayer(removedLayerId)) {
+      map.removeLayer(removedLayerId);
+    }
+
     map.addLayer({
-      id: `infrastructure-unchanged-${side}`,
+      id: unchangedLayerId,
       type: 'line',
       source: sourceId,
-      filter: ['==', ['get', 'status'], 'unchanged'],
+      filter: buildTypeFilter(['==', ['get', 'status'], 'unchanged']),
       paint: {
         'line-color': '#ffffff',
         'line-width': lineWidthUnchanged,
@@ -145,10 +231,10 @@ const CompareMap = ({
     });
 
     map.addLayer({
-      id: `infrastructure-added-${side}`,
+      id: addedLayerId,
       type: 'line',
       source: sourceId,
-      filter: ['==', ['get', 'status'], 'added'],
+      filter: buildTypeFilter(['==', ['get', 'status'], 'added']),
       paint: {
         'line-color': '#22c55e',
         'line-width': lineWidthHighlight,
@@ -157,32 +243,125 @@ const CompareMap = ({
     });
 
     map.addLayer({
-      id: `infrastructure-removed-${side}`,
+      id: removedLayerId,
       type: 'line',
       source: sourceId,
-      filter: ['==', ['get', 'status'], 'removed'],
+      filter: buildTypeFilter(['==', ['get', 'status'], 'removed']),
       paint: {
         'line-color': '#ef4444',
         'line-width': lineWidthHighlight,
         'line-opacity': 0.95
       }
     });
-  };
+  }, [buildTypeFilter]);
+
+  // Calculate bounds from GeoJSON data
+  const calculateDataBounds = useCallback((data) => {
+    if (!data || !data.features || data.features.length === 0) {
+      return null;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds();
+    let hasCoordinates = false;
+
+    data.features.forEach(feature => {
+      if (!feature.geometry || !feature.geometry.coordinates) return;
+
+      const coords = feature.geometry.coordinates;
+      
+      if (feature.geometry.type === 'Point') {
+        bounds.extend(coords);
+        hasCoordinates = true;
+      } else if (feature.geometry.type === 'LineString') {
+        coords.forEach(coord => {
+          bounds.extend(coord);
+          hasCoordinates = true;
+        });
+      } else if (feature.geometry.type === 'Polygon') {
+        coords[0].forEach(coord => {
+          bounds.extend(coord);
+          hasCoordinates = true;
+        });
+      } else if (feature.geometry.type === 'MultiLineString') {
+        coords.forEach(line => {
+          line.forEach(coord => {
+            bounds.extend(coord);
+            hasCoordinates = true;
+          });
+        });
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        coords.forEach(polygon => {
+          polygon[0].forEach(coord => {
+            bounds.extend(coord);
+            hasCoordinates = true;
+          });
+        });
+      }
+    });
+
+    if (hasCoordinates && !bounds.isEmpty()) {
+      return bounds;
+    }
+
+    return null;
+  }, []);
+
+  // Track if we've centered on data initially
+  const hasCenteredOnData = useRef({ left: false, right: false });
+  const hasUsedSavedPosition = useRef(!!savedPosition);
 
   // Update data when it changes
   useEffect(() => {
     if (mapsLoaded.left && leftMap.current && leftData) {
       const source = leftMap.current.getSource('infrastructure-left');
       if (source) source.setData(leftData);
+      
+      // Only auto-fit to data if we don't have a saved position
+      if (!hasUsedSavedPosition.current && !hasCenteredOnData.current.left && leftData.features && leftData.features.length > 0) {
+        const bounds = calculateDataBounds(leftData);
+        if (bounds) {
+          leftMap.current.fitBounds(bounds, {
+            padding: 50,
+            maxZoom: 18,
+            duration: 1000
+          });
+          hasCenteredOnData.current.left = true;
+        }
+      }
     }
-  }, [leftData, mapsLoaded.left]);
+  }, [leftData, mapsLoaded.left, calculateDataBounds]);
 
   useEffect(() => {
     if (mapsLoaded.right && rightMap.current && rightData) {
       const source = rightMap.current.getSource('infrastructure-right');
       if (source) source.setData(rightData);
+      
+      // Only auto-fit to data if we don't have a saved position
+      if (!hasUsedSavedPosition.current && !hasCenteredOnData.current.right && rightData.features && rightData.features.length > 0) {
+        const bounds = calculateDataBounds(rightData);
+        if (bounds) {
+          rightMap.current.fitBounds(bounds, {
+            padding: 50,
+            maxZoom: 18,
+            duration: 1000
+          });
+          hasCenteredOnData.current.right = true;
+        }
+      }
     }
-  }, [rightData, mapsLoaded.right]);
+  }, [rightData, mapsLoaded.right, calculateDataBounds]);
+
+  // Add layers when maps are loaded and update when enabledTypes changes
+  useEffect(() => {
+    if (!mapsLoaded.left || !mapsLoaded.right || !addInfrastructureLayers) return;
+    
+    if (leftMap.current) {
+      addInfrastructureLayers(leftMap.current, 'left');
+    }
+    if (rightMap.current) {
+      addInfrastructureLayers(rightMap.current, 'right');
+    }
+  }, [enabledTypes, mapsLoaded.left, mapsLoaded.right, addInfrastructureLayers]);
 
   // Slider drag handling
   const handleMouseDown = (e) => {
