@@ -9,6 +9,7 @@
   --bg-card: #162032;
   
   /* Accent colors */
+  --accent-primary: #3b82f6;
   --accent-green: #10b981;
   --accent-green-glow: rgba(16, 185, 129, 0.3);
   --accent-red: #ef4444;
@@ -128,12 +129,20 @@ body {
   );
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .app-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
   margin-bottom: 4px;
+  flex: 1;
 }
 
 .app-subtitle {

@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { saveMapPosition, loadMapPosition } from '../utils/mapPosition';
 import '../styles/Map.css';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -12,7 +13,7 @@ const MAP_STYLES = {
   light: 'mapbox://styles/mapbox/light-v11',
 };
 
-const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 }) => {
+const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17, enabledTypes = { sidewalk: true, crosswalk: true, road: true } }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const popup = useRef(null);
@@ -20,14 +21,105 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
   const [currentStyle, setCurrentStyle] = useState('dark');
   const geoDataRef = useRef(geoData);
   
-  // Store initial values in refs so they don't cause re-renders
-  const initialCenter = useRef(center);
-  const initialZoom = useRef(zoom);
+  // Load saved position or use provided props
+  const savedPosition = loadMapPosition();
+  const initialCenter = useRef(savedPosition?.center || center);
+  const initialZoom = useRef(savedPosition?.zoom || zoom);
+  const initialBearing = useRef(savedPosition?.bearing || 0);
+  const initialPitch = useRef(savedPosition?.pitch || 0);
+  
+  // Debounce timer for saving position
+  const savePositionTimeout = useRef(null);
 
   // Keep geoData ref updated
   useEffect(() => {
     geoDataRef.current = geoData;
   }, [geoData]);
+
+  // Calculate bounds from GeoJSON data
+  const calculateDataBounds = useCallback((data) => {
+    if (!data || !data.features || data.features.length === 0) {
+      return null;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds();
+    let hasCoordinates = false;
+
+    data.features.forEach(feature => {
+      if (!feature.geometry || !feature.geometry.coordinates) return;
+
+      const coords = feature.geometry.coordinates;
+      
+      if (feature.geometry.type === 'Point') {
+        bounds.extend(coords);
+        hasCoordinates = true;
+      } else if (feature.geometry.type === 'LineString') {
+        coords.forEach(coord => {
+          bounds.extend(coord);
+          hasCoordinates = true;
+        });
+      } else if (feature.geometry.type === 'Polygon') {
+        coords[0].forEach(coord => {
+          bounds.extend(coord);
+          hasCoordinates = true;
+        });
+      } else if (feature.geometry.type === 'MultiLineString') {
+        coords.forEach(line => {
+          line.forEach(coord => {
+            bounds.extend(coord);
+            hasCoordinates = true;
+          });
+        });
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        coords.forEach(polygon => {
+          polygon[0].forEach(coord => {
+            bounds.extend(coord);
+            hasCoordinates = true;
+          });
+        });
+      }
+    });
+
+    if (hasCoordinates && !bounds.isEmpty()) {
+      return bounds;
+    }
+
+    return null;
+  }, []);
+
+  // Helper function to build type filter
+  const buildTypeFilter = useCallback((statusFilter) => {
+    const typeConditions = [];
+    
+    // Get feature type from properties (f_type, class, or type)
+    const getFeatureType = ['coalesce', 
+      ['get', 'f_type'],
+      ['get', 'class'],
+      ['get', 'type']
+    ];
+    
+    if (enabledTypes.sidewalk) {
+      typeConditions.push(['==', getFeatureType, 'sidewalk']);
+    }
+    if (enabledTypes.crosswalk) {
+      typeConditions.push(['==', getFeatureType, 'crosswalk']);
+    }
+    if (enabledTypes.road) {
+      typeConditions.push(['==', getFeatureType, 'road']);
+    }
+    
+    // If no types are enabled, show nothing
+    if (typeConditions.length === 0) {
+      return ['literal', false];
+    }
+    
+    // Combine status filter with type filter
+    if (typeConditions.length === 1) {
+      return ['all', statusFilter, typeConditions[0]];
+    } else {
+      return ['all', statusFilter, ['any', ...typeConditions]];
+    }
+  }, [enabledTypes]);
 
   // Add infrastructure layers to map
   const addInfrastructureLayers = useCallback(() => {
@@ -37,7 +129,12 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
     if (!map.current.getSource('infrastructure')) {
       map.current.addSource('infrastructure', {
         type: 'geojson',
-        data: geoDataRef.current || { type: 'FeatureCollection', features: [] }
+        data: geoDataRef.current || { type: 'FeatureCollection', features: [] },
+        // Performance optimizations for large datasets
+        buffer: 128,           // Larger buffer reduces tile loading at edges
+        tolerance: 0.5,        // Simplify geometries at lower zoom levels (rendering only, not data)
+        maxzoom: 18,           // Prevent over-detailed tiles
+        generateId: true       // Auto-generate feature IDs for better performance
       });
     }
 
@@ -64,7 +161,7 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
         id: 'infrastructure-unchanged',
         type: 'line',
         source: 'infrastructure',
-        filter: ['==', ['get', 'status'], 'unchanged'],
+        filter: buildTypeFilter(['==', ['get', 'status'], 'unchanged']),
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': currentStyle === 'satellite' ? '#ffffff' : '#94a3b8',
@@ -72,6 +169,9 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
           'line-opacity': 0.85
         }
       });
+    } else {
+      // Update filter if layer exists
+      map.current.setFilter('infrastructure-unchanged', buildTypeFilter(['==', ['get', 'status'], 'unchanged']));
     }
 
     // Layer for added infrastructure (green)
@@ -80,7 +180,7 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
         id: 'infrastructure-added',
         type: 'line',
         source: 'infrastructure',
-        filter: ['==', ['get', 'status'], 'added'],
+        filter: buildTypeFilter(['==', ['get', 'status'], 'added']),
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#22c55e',
@@ -88,6 +188,9 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
           'line-opacity': 0.95
         }
       });
+    } else {
+      // Update filter if layer exists
+      map.current.setFilter('infrastructure-added', buildTypeFilter(['==', ['get', 'status'], 'added']));
     }
 
     // Layer for removed infrastructure (red)
@@ -96,7 +199,7 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
         id: 'infrastructure-removed',
         type: 'line',
         source: 'infrastructure',
-        filter: ['==', ['get', 'status'], 'removed'],
+        filter: buildTypeFilter(['==', ['get', 'status'], 'removed']),
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#ef4444',
@@ -104,6 +207,9 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
           'line-opacity': 0.95
         }
       });
+    } else {
+      // Update filter if layer exists
+      map.current.setFilter('infrastructure-removed', buildTypeFilter(['==', ['get', 'status'], 'removed']));
     }
 
     // Add hover effects
@@ -152,7 +258,15 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
           .addTo(map.current);
       });
     });
-  }, [currentStyle]);
+  }, [currentStyle, buildTypeFilter]);
+
+  // Update layer filters when enabledTypes changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    
+    // Rebuild layers with updated filters
+    addInfrastructureLayers();
+  }, [enabledTypes, mapLoaded, addInfrastructureLayers]);
 
   // Initialize map only once
   useEffect(() => {
@@ -163,8 +277,14 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
       style: MAP_STYLES[currentStyle],
       center: initialCenter.current,
       zoom: initialZoom.current,
-      pitch: 0,
-      bearing: 0,
+      pitch: initialPitch.current,
+      bearing: initialBearing.current,
+      // Performance optimizations
+      antialias: false,        // Disable antialiasing for better performance
+      fadeDuration: 0,         // Disable fade animations
+      trackResize: true,
+      refreshExpiredTiles: false,
+      maxTileCacheSize: 100,   // Increase tile cache
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left');
@@ -181,7 +301,36 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
       setMapLoaded(true);
     });
 
+    // Save map position when user moves/zooms the map
+    const handleMapMove = () => {
+      if (!map.current) return;
+      
+      // Debounce saves to avoid excessive localStorage writes
+      if (savePositionTimeout.current) {
+        clearTimeout(savePositionTimeout.current);
+      }
+      
+      savePositionTimeout.current = setTimeout(() => {
+        if (map.current) {
+          saveMapPosition({
+            center: map.current.getCenter(),
+            zoom: map.current.getZoom(),
+            bearing: map.current.getBearing(),
+            pitch: map.current.getPitch()
+          });
+        }
+      }, 500); // Save 500ms after user stops moving
+    };
+
+    map.current.on('moveend', handleMapMove);
+    map.current.on('zoomend', handleMapMove);
+    map.current.on('rotateend', handleMapMove);
+    map.current.on('pitchend', handleMapMove);
+
     return () => {
+      if (savePositionTimeout.current) {
+        clearTimeout(savePositionTimeout.current);
+      }
       if (map.current) {
         map.current.remove();
         map.current = null;
@@ -211,6 +360,10 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
     });
   }, [currentStyle, addInfrastructureLayers]);
 
+  // Track if we've centered on data initially
+  const hasCenteredOnData = useRef(false);
+  const hasUsedSavedPosition = useRef(!!savedPosition);
+
   // Update data when geoData changes
   useEffect(() => {
     if (!mapLoaded || !map.current) return;
@@ -218,8 +371,22 @@ const Map = ({ geoData, selectedYear, center = [-73.9695, 40.6744], zoom = 17 })
     const source = map.current.getSource('infrastructure');
     if (source && geoData) {
       source.setData(geoData);
+      
+      // Only auto-fit to data if we don't have a saved position
+      // This allows seamless transitions between map modes
+      if (!hasUsedSavedPosition.current && !hasCenteredOnData.current && geoData.features && geoData.features.length > 0) {
+        const bounds = calculateDataBounds(geoData);
+        if (bounds) {
+          map.current.fitBounds(bounds, {
+            padding: 50,
+            maxZoom: 18,
+            duration: 1000
+          });
+          hasCenteredOnData.current = true;
+        }
+      }
     }
-  }, [geoData, mapLoaded]);
+  }, [geoData, mapLoaded, calculateDataBounds]);
 
   return (
     <div className="map-wrapper">

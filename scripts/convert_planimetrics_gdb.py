@@ -1,9 +1,17 @@
 """
-Convert NYC Planimetrics 2014 and 2022 File Geodatabase data to GeoJSON
+Convert NYC Planimetrics File Geodatabase (.gdb) data to GeoJSON
 Uses Fiona to read ESRI File Geodatabase format
+
+Supports .gdb years: 2014, 2016, 2017, 2022
+For shapefile years, use convert_planimetrics.py
+
+Usage:
+    python convert_planimetrics_gdb.py                  # Convert all .gdb years
+    python convert_planimetrics_gdb.py 2014 2022       # Convert specific years
 """
 import json
 import math
+import sys
 from pathlib import Path
 import fiona
 from fiona.transform import transform_geom
@@ -15,11 +23,16 @@ FRONTEND_DATA_DIR = Path("frontend/public/data/reference")
 # Create output directory
 FRONTEND_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Year mappings to folder names
+# Year mappings to folder names (.gdb files)
 YEAR_FOLDERS = {
     2014: "NYC_Planimetrics_2014.gdb",
+    2016: "NYC_Planimetrics_2016.gdb",
+    2017: "NYC_Planimetrics_2017.gdb",
     2022: "NYC_Planimetrics_2022.gdb"
 }
+
+# All .gdb years
+GDB_YEARS = [2014, 2016, 2017, 2022]
 
 # Brooklyn bounding box for filtering (approximate)
 # [min_lon, min_lat, max_lon, max_lat]
@@ -191,7 +204,9 @@ def update_manifest():
         "files": {}
     }
     
-    for year in [1996, 2004, 2014, 2022]:
+    # Check all possible years
+    all_years = [1996, 2001, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2017, 2018, 2022]
+    for year in all_years:
         file_path = FRONTEND_DATA_DIR / f"planimetrics_{year}.geojson"
         if file_path.exists():
             manifest["available_years"].append(year)
@@ -204,15 +219,29 @@ def update_manifest():
     print(f"Available years: {manifest['available_years']}")
 
 def main():
-    print("Converting NYC Planimetrics 2014 & 2022 (File Geodatabase) to GeoJSON")
+    print("Converting NYC Planimetrics (File Geodatabase) to GeoJSON")
     print("=" * 60)
     
-    for year in [2014, 2022]:
+    # Parse command line arguments for specific years
+    if len(sys.argv) > 1:
+        try:
+            years_to_process = [int(y) for y in sys.argv[1:] if y.isdigit()]
+        except ValueError:
+            print("Usage: python convert_planimetrics_gdb.py [year1] [year2] ...")
+            return
+    else:
+        years_to_process = GDB_YEARS
+    
+    print(f"📅 Years to process: {years_to_process}")
+    
+    successful = []
+    for year in years_to_process:
         data = convert_gdb_year(year, bbox=BROOKLYN_BBOX)
         if data and data['features']:
             output_path = FRONTEND_DATA_DIR / f"planimetrics_{year}.geojson"
             save_geojson(data, output_path)
             print(f"  Total features for {year}: {len(data['features'])}")
+            successful.append(year)
         else:
             print(f"  No features extracted for {year}")
     
@@ -220,7 +249,8 @@ def main():
     update_manifest()
     
     print("\n" + "=" * 60)
-    print("Conversion complete!")
+    print(f"✅ Conversion complete!")
+    print(f"📅 Successfully converted: {successful}")
 
 if __name__ == "__main__":
     main()

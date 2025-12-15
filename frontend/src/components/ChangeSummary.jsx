@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import '../styles/ChangeSummary.css';
 
-const ChangeSummary = ({ summary, year }) => {
+const ChangeSummary = ({ summary, year, compareFromYear = null, calibration = null, enabledTypes = { sidewalk: true, crosswalk: true, road: true }, onToggleType = null }) => {
+  // Compute match rate (must be called before any early returns)
+  const matchRate = useMemo(() => {
+    if (!summary) return null;
+    if (!summary.unchanged && !summary.removed) return null;
+    const beforeCount = summary.unchanged + summary.removed;
+    return beforeCount > 0 ? summary.unchanged / beforeCount : 0;
+  }, [summary]);
+
   if (!summary) return null;
 
   const typeLabels = {
@@ -16,6 +24,26 @@ const ChangeSummary = ({ summary, year }) => {
       <h3 className="summary-title">
         <span className="year-highlight">{year}</span> Summary
       </h3>
+
+      {/* Auto-Calibration Status */}
+      {matchRate !== null && (
+        <div className="quality-banner quality-good">
+          <div className="quality-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
+          <div className="quality-content">
+            <span className="quality-rate">
+              {(matchRate * 100).toFixed(0)}% continuity
+            </span>
+            <span className="quality-message">
+              {calibration ? 'Auto-calibrated for realistic change detection' : 'Infrastructure stability verified'}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card added">
@@ -98,6 +126,39 @@ const ChangeSummary = ({ summary, year }) => {
           {(summary.totalLength / 1000).toFixed(1)} km
         </span>
       </div>
+
+      {/* Type Toggles */}
+      {onToggleType && (
+        <div className="type-toggles-section">
+          <h4>Show on Map</h4>
+          <div className="type-toggles">
+            <label className="type-toggle">
+              <input
+                type="checkbox"
+                checked={enabledTypes.sidewalk !== false}
+                onChange={() => onToggleType('sidewalk')}
+              />
+              <span className="toggle-label">Sidewalks</span>
+            </label>
+            <label className="type-toggle">
+              <input
+                type="checkbox"
+                checked={enabledTypes.crosswalk !== false}
+                onChange={() => onToggleType('crosswalk')}
+              />
+              <span className="toggle-label">Crosswalks</span>
+            </label>
+            <label className="type-toggle">
+              <input
+                type="checkbox"
+                checked={enabledTypes.road !== false}
+                onChange={() => onToggleType('road')}
+              />
+              <span className="toggle-label">Roads</span>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

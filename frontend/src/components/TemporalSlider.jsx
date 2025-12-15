@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import '../styles/TemporalSlider.css';
 
 const TemporalSlider = ({ 
@@ -8,35 +8,37 @@ const TemporalSlider = ({
   onPlayPause,
   availableYears = [2014, 2016, 2018]
 }) => {
-  const minYear = Math.min(...availableYears);
-  const maxYear = Math.max(...availableYears);
+  // Sort years to ensure proper ordering
+  const sortedYears = useMemo(() => [...availableYears].sort((a, b) => a - b), [availableYears]);
+  
+  // Use index-based slider (0 to length-1) for discrete steps
+  const currentIndex = sortedYears.indexOf(selectedYear);
+  const maxIndex = sortedYears.length - 1;
 
   // Auto-play functionality
   useEffect(() => {
     if (isPlaying) {
       const timer = setTimeout(() => {
-        const currentIndex = availableYears.indexOf(selectedYear);
-        const nextIndex = (currentIndex + 1) % availableYears.length;
-        onYearChange(availableYears[nextIndex]);
-      }, 2000);
+        const nextIndex = (currentIndex + 1) % sortedYears.length;
+        onYearChange(sortedYears[nextIndex]);
+      }, 2500); // Slightly longer for large datasets
       return () => clearTimeout(timer);
     }
-  }, [isPlaying, selectedYear, onYearChange, availableYears]);
+  }, [isPlaying, currentIndex, onYearChange, sortedYears]);
 
   const handleSliderChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    // Find closest available year
-    const closestYear = availableYears.reduce((prev, curr) => 
-      Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
-    );
-    onYearChange(closestYear);
+    const index = parseInt(e.target.value, 10);
+    if (index >= 0 && index < sortedYears.length) {
+      onYearChange(sortedYears[index]);
+    }
   };
 
   const handleYearClick = (year) => {
     onYearChange(year);
   };
 
-  const progress = ((selectedYear - minYear) / (maxYear - minYear)) * 100;
+  // Progress based on index position
+  const progress = maxIndex > 0 ? (currentIndex / maxIndex) * 100 : 0;
 
   return (
     <div className="temporal-slider">
@@ -68,9 +70,10 @@ const TemporalSlider = ({
           />
           <input
             type="range"
-            min={minYear}
-            max={maxYear}
-            value={selectedYear}
+            min={0}
+            max={maxIndex}
+            step={1}
+            value={currentIndex >= 0 ? currentIndex : 0}
             onChange={handleSliderChange}
             className="slider-input"
           />
@@ -78,7 +81,7 @@ const TemporalSlider = ({
       </div>
 
       <div className="year-markers">
-        {availableYears.map((year) => (
+        {sortedYears.map((year) => (
           <button
             key={year}
             className={`year-marker ${year === selectedYear ? 'active' : ''}`}
@@ -92,7 +95,7 @@ const TemporalSlider = ({
       
       <div className="data-info">
         <span className="info-badge">
-          {availableYears.length} snapshots available
+          {sortedYears.length} snapshots • {sortedYears[0]}–{sortedYears[sortedYears.length - 1]}
         </span>
       </div>
     </div>

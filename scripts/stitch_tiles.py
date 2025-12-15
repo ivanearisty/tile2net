@@ -138,13 +138,17 @@ def stitch_tiles(input_dir, output_path, tile_size=256):
 
 
 if __name__ == '__main__':
+    # Get project root directory
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    
     # Input directory with tiles
-    input_dir = '/Users/suape/WorkDir/tile2net/output/bk_central_2022/bk_central_2022/tiles/static/nys_2022/256_19'
+    input_dir = project_root / 'output' / 'bk_central_2022' / 'bk_central_2022' / 'tiles' / 'static' / 'nys_2022' / '256_19'
     
     # Output path for stitched image
-    output_path = '/Users/suape/WorkDir/tile2net/output/bk_central_2022/bk_central_2022_stitched.png'
+    output_path = project_root / 'output' / 'bk_central_2022' / 'bk_central_2022_stitched.png'
     
     # Tile size
     tile_size = 256
     
-    stitch_tiles(input_dir, output_path, tile_size)
+    stitch_tiles(str(input_dir), str(output_path), tile_size)

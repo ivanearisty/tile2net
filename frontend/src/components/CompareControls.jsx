@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/CompareControls.css';
 
 const CompareControls = ({ 
@@ -9,8 +9,17 @@ const CompareControls = ({
   onLeftYearChange,
   onRightYearChange,
   onOpenImageOverlay,
-  availableYears = [2014, 2016, 2018]
+  availableYears = [2014, 2016, 2018],
+  tolerance,
+  onToleranceChange,
+  isReloading = false
 }) => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Convert distance in degrees to approximate meters (at NYC latitude)
+  const distanceToMeters = (deg) => Math.round(deg * 111000 * Math.cos(40.7 * Math.PI / 180));
+  const metersToDistance = (m) => m / (111000 * Math.cos(40.7 * Math.PI / 180));
+  
   return (
     <div className="compare-controls">
       <div className="compare-header">
@@ -85,6 +94,105 @@ const CompareControls = ({
                 {rightYear - leftYear} year{rightYear - leftYear !== 1 ? 's' : ''} difference
               </span>
             </div>
+          </div>
+
+          {/* Tolerance Settings */}
+          <div className="tolerance-section">
+            <button 
+              className={`advanced-toggle ${showAdvanced ? 'open' : ''}`}
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              Match Tolerance
+              <svg className="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {showAdvanced && tolerance && (
+              <div className="tolerance-controls">
+                <div className="tolerance-slider">
+                  <label>
+                    <span>Distance</span>
+                    <span className="tolerance-value">{distanceToMeters(tolerance.DISTANCE)}m</span>
+                  </label>
+                  <input 
+                    type="range"
+                    min="5"
+                    max="50"
+                    step="1"
+                    value={distanceToMeters(tolerance.DISTANCE)}
+                    onChange={(e) => onToleranceChange({
+                      ...tolerance,
+                      DISTANCE: metersToDistance(parseInt(e.target.value))
+                    })}
+                  />
+                  <div className="slider-labels">
+                    <span>5m</span>
+                    <span>50m</span>
+                  </div>
+                </div>
+
+                <div className="tolerance-slider">
+                  <label>
+                    <span>Length Ratio</span>
+                    <span className="tolerance-value">{Math.round(tolerance.LENGTH_RATIO * 100)}%</span>
+                  </label>
+                  <input 
+                    type="range"
+                    min="10"
+                    max="80"
+                    step="5"
+                    value={tolerance.LENGTH_RATIO * 100}
+                    onChange={(e) => onToleranceChange({
+                      ...tolerance,
+                      LENGTH_RATIO: parseInt(e.target.value) / 100
+                    })}
+                  />
+                  <div className="slider-labels">
+                    <span>10%</span>
+                    <span>80%</span>
+                  </div>
+                </div>
+
+                <div className="tolerance-slider">
+                  <label>
+                    <span>Angle</span>
+                    <span className="tolerance-value">{tolerance.ANGLE}°</span>
+                  </label>
+                  <input 
+                    type="range"
+                    min="5"
+                    max="45"
+                    step="5"
+                    value={tolerance.ANGLE}
+                    onChange={(e) => onToleranceChange({
+                      ...tolerance,
+                      ANGLE: parseInt(e.target.value)
+                    })}
+                  />
+                  <div className="slider-labels">
+                    <span>5°</span>
+                    <span>45°</span>
+                  </div>
+                </div>
+
+                <p className="tolerance-hint">
+                  {isReloading ? (
+                    <span className="reloading">
+                      <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                      </svg>
+                      Recomputing...
+                    </span>
+                  ) : (
+                    'Adjust how strictly features must match between years'
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
